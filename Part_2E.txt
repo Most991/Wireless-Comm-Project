@@ -1,0 +1,87 @@
+S = 340;
+Au = 0.025;
+Prx_min = -95;
+H_rx = 1.5;
+H_tx = 20;
+f = 900*(10^6);
+City_area = 100;
+GOS = 0.02;
+SIR_min = 19;
+
+User_density_array = zeros(1,20);
+number_of_cells_in_city_array = zeros(1,20);
+R_array = zeros(1,20);
+
+Sectorization = [1,2,6];
+Number_of_sectors = [6,3,1];
+
+
+for m = 1:3
+
+  #Get Cluster size
+  SIR_min_ratio = 10^(SIR_min/10);
+  # Get number of cells
+  N = ((((SIR_min_ratio*Sectorization(m))^0.25)+1)^2)/3;
+  disp("Value of N is:");
+  disp(N);
+  ###################################################
+  # Get the specific value of N
+  N_spvalue = [1 3 4 7 9 12 13 16 19 21 25 28 31 34 36 37 40 41 48];
+  for L = 1:length(N_spvalue)
+    if (N <= N_spvalue(L))
+      N = N_spvalue(L) ;
+      break;
+      end
+   end
+  disp("Value of N new is:");
+  disp(N);
+   #Get Channels available
+   k=floor(S/N);
+   disp("Value of k is:");
+   disp(k);
+   disp('----------------------------------------')
+
+   if (Sectorization(m)==6)
+   C=k;
+   elseif (Sectorization(m)==2)
+   C=floor(k/3);
+   elseif (Sectorization(m)==1)
+   C=floor(k/6);
+   end
+
+  for i = 1:20
+    User_density_array(i) = 100*i
+    ## write GOS,A,C equation
+
+    function_handle = @(A) (((A^C)/factorial(C))/(sum(A.^[0:C]./factorial([0:C])))) - GOS;
+    root = fzero(function_handle,50);
+
+    A_per_sector_array(i) = root;
+    A_per_cell(i) = (A_per_sector_array(i)*Number_of_sectors(m))
+    number_of_user_per_cell = A_per_cell(i)/Au ;
+    Total_num_users = User_density_array(i) * City_area;
+    #Total number_of_cells_in_city
+    number_of_cells_in_city_array(i) = Total_num_users / number_of_user_per_cell;
+
+    #Get cell radius
+    Cell_area = City_area / number_of_cells_in_city_array(i);
+    R_array(i) = sqrt((2/(3*sqrt(3)))*Cell_area);
+
+
+  end
+  figure 1;
+  plot(User_density_array,number_of_cells_in_city_array);
+  hold on;
+  xlabel("User density");
+  ylabel("Number of cells");
+  title("The number of cells versus user density (100 to 2000 users/km2).");
+  legend("60° sectorization","120° sectorization","Omni-directional")
+
+  figure 2;
+  plot(User_density_array,R_array);
+  hold on;
+  xlabel("User density");
+  ylabel("Cell Radius");
+  title("The cell radius versus user density (100 to 2000 users/km2).");
+  legend("60° sectorization","120° sectorization","Omni-directional")
+end

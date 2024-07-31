@@ -1,0 +1,128 @@
+S = 340;
+Au = 0.025;
+Prx_min = -95;
+H_rx = 1.5;
+H_tx = 20;
+f = 900;
+
+# Get inputs from user
+prompt = 'Enter GOS = ';
+GOS = input(prompt);
+prompt = 'Enter City area in km2 = ';
+City_area = input(prompt);
+prompt = 'Enter User density per Km2 = ';
+User_density = input(prompt);
+prompt = 'Enter SIR_min in dB = ';
+SIR_min = input(prompt);
+prompt = 'Enter Sectorization methods (6 for no sectorization, 2 for 120 deg sectorization, 1 for 60 deg sectorization) = ';
+Sectorization = input(prompt);
+
+#Get Cluster size
+SIR_min_ratio = 10^(SIR_min/10);
+N = ((((SIR_min_ratio*Sectorization)^0.25)+1)^2)/3;
+
+
+###################################################
+# Get the specific value of N
+N_spvalue = [1 3 4 7 9 12 13 16 19 21 25 28 31 34 36 37 40 41 48];
+for i = 1:length(N_spvalue)
+ if (N <= N_spvalue(i))
+   N = N_spvalue(i) ;
+   break;
+ end
+end
+disp("Value of N is:");
+disp(N);
+disp('----------------------------------------')
+#######################################################
+
+#Get Channels available
+k=floor(S/N);
+disp("Value of k is:");
+disp(k);
+disp('----------------------------------------')
+
+#Get Channels available in each sector
+if (Sectorization==6)
+  C=k;
+elseif (Sectorization==2)
+  C=floor(k/3);
+elseif (Sectorization==1)
+  C=floor(k/6);
+end
+
+
+##GOS,A,C equation
+disp("Value of C is:");
+disp(C);
+disp('----------------------------------------')
+
+# Get A per sector in Erlangs
+function_handle = @(A) (((A^C)/factorial(C))/(sum(A.^[0:C]./factorial([0:C])))) - GOS;
+root = fzero(function_handle,50);
+
+A_per_sector = root;
+disp("Value of A per sector in Erlangs is:");
+disp(A_per_sector);
+disp('----------------------------------------')
+
+# Get A per cell in Erlangs
+if (Sectorization==6)
+  A_per_cell = A_per_sector
+elseif (Sectorization==2)
+  A_per_cell = A_per_sector*3
+elseif (Sectorization==1)
+  A_per_cell = A_per_sector*6
+end
+
+disp("Value of A per cell in Erlangs is:");
+disp(A_per_cell);
+disp('----------------------------------------')
+
+number_of_user_per_cell = A_per_cell/Au ;
+disp("Value of number_of_user_per_cell is:");
+disp(number_of_user_per_cell);
+disp('----------------------------------------')
+
+Total_num_users = User_density * City_area;
+disp("Value of Total_num_users is:");
+disp(Total_num_users);
+disp('----------------------------------------')
+
+#Total number_of_cells_in_city
+number_of_cells_in_city = ceil(Total_num_users / number_of_user_per_cell);
+disp("Value of number_of_cells_in_city is:");
+disp(number_of_cells_in_city);
+disp('----------------------------------------')
+
+#Get cell radius
+Cell_area = City_area / number_of_cells_in_city;
+disp("Value of Cell_area in Km is:");
+disp(Cell_area);
+disp('----------------------------------------')
+
+R = sqrt((2/(3*sqrt(3)))*Cell_area);
+disp("Value of R in Km is:");
+disp(R);
+disp('----------------------------------------')
+
+Distance_from_BS_to_MS = 0.01:0.01:2*R;
+
+% Get Tx Power
+CH = 0.8 + (1.1 * log10(f) - 0.7) * H_rx - 1.56 * log10(f);
+Path_loss = 69.55 + 26.16 * log10(f) - 13.82 * log10(H_tx) - CH + (44.9 - 6.55 * log10(H_tx)) * log10(R);
+
+P_tx = Prx_min + Path_loss;
+
+Path_loss_Dist_variation = 69.55 + 26.16 * log10(f) - 13.82 * log10(H_tx) - CH + (44.9 - 6.55 * log10(H_tx)) * log10(Distance_from_BS_to_MS);
+P_rx = P_tx - Path_loss_Dist_variation;
+
+disp("Value of P_tx in dBm is:");
+disp(P_tx);
+disp('----------------------------------------')
+
+figure
+plot(Distance_from_BS_to_MS,P_rx);
+xlabel("Receiver distance in Km from the BS");
+ylabel("Received power in dBm");
+title("The MS received power in dBm versus the receiver distance from the BS.");

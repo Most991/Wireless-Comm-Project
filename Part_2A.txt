@@ -1,0 +1,44 @@
+S = 340;
+Au = 0.025;
+Prx_min = -95;
+H_rx = 1.5;
+H_tx = 20;
+f = 900*(10^6);
+City_area = 100;
+N_array = zeros(1,29);
+SIR_min_array = zeros(1,29);
+Sectorization = [1,2,6];
+
+# Get inputs from user
+#prompt = 'Enter GOS = ';
+#GOS = input(prompt);
+prompt = 'Enter User density = ';
+User_density = input(prompt);
+
+#################################################################################
+for m = 1:3
+  for i = 1:30
+    SIR_min_array(i) = i;
+    #Get Cluster size
+    SIR_min_ratio = 10^(SIR_min_array(i)/10);
+    # Get number of cells
+    N = ((((SIR_min_ratio*Sectorization(m))^0.25)+1)^2)/3;
+    ###################################################
+    # Get the specific value of N
+    N_spvalue = [1 3 4 7 9 12 13 16 19 21 25 28 31 34 36 37 40 41 48];
+    for L = 1:length(N_spvalue)
+      if (N <= N_spvalue(L))
+      N = N_spvalue(L) ;
+      break;
+      end
+    end
+    N_array(i)=N;
+  end
+  stairs(SIR_min_array,N_array);
+  hold on;
+  xlabel("SIR_min");
+  ylabel("Cluster size");
+  title("Plot the cluster size versus SIR_min");
+  legend("60° sectorization","120° sectorization","Omni-directional")
+end
+##################################################################################
